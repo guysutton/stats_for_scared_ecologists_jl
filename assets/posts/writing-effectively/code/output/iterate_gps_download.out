@@ -1,0 +1,6 @@
+MethodError: no method matching size(::GBIF.GBIFRecords)
+Closest candidates are:
+  size(!Matched::Union{QR, LinearAlgebra.QRCompactWY, QRPivoted}) at C:\Users\s1900332\AppData\Local\Programs\Julia-1.8.5\share\julia\stdlib\v1.8\LinearAlgebra\src\qr.jl:581
+  size(!Matched::Union{QR, LinearAlgebra.QRCompactWY, QRPivoted}, !Matched::Integer) at C:\Users\s1900332\AppData\Local\Programs\Julia-1.8.5\share\julia\stdlib\v1.8\LinearAlgebra\src\qr.jl:580
+  size(!Matched::Union{Cholesky, CholeskyPivoted}) at C:\Users\s1900332\AppData\Local\Programs\Julia-1.8.5\share\julia\stdlib\v1.8\LinearAlgebra\src\cholesky.jl:514
+  ...
