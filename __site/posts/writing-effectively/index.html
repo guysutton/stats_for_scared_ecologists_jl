@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+   <link rel="stylesheet" href="/libs/highlight/styles/github.min.css">
+   
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/poole_hyde.css">
+<!-- style adjustments -->
+<style>
+  html {font-size: 17px;}
+  .franklin-content {position: relative; padding-left: 5%; padding-right: 5%; line-height: 1.35em;}
+  @media (min-width: 940px) {
+    .franklin-content {width: 80%; margin-left: auto; margin-right: auto;}
+  }
+  @media (max-width: 768px) {
+    .franklin-content {padding-left: 6%; padding-right: 6%;}
+  }
+</style>
+<link rel="icon" href="/assets/favicon.png">
+
+   <title> Drawing beautiful maps using Julia</title>  
+</head>
+<body>
+<div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <h1><a href="/">Stats for Scared Ecologists</a></h1>
+      <p class="lead">Statistics, R, Julia, GIS</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="sidebar-nav-item " href="/">Home</a>
+      <a class="sidebar-nav-item " href="/about_me/">About me</a>
+      <a class="sidebar-nav-item " href="/menu2/">More goodies</a>
+      <a class="sidebar-nav-item " href="/menu3/">Tags</a>
+    </nav>
+    <p>&copy; Guy F. Sutton.</p>
+  </div>
+</div>
+<div class="content container">
+
+<!-- Content appended here -->
+<div class="franklin-content">
+<h1 id="drawing_beautiful_maps_using_julia"><a href="#drawing_beautiful_maps_using_julia" class="header-anchor">Drawing beautiful maps using Julia </a></h1>
+<p>In todays post, we are going to learn how to draw a beautiful map using <code>Julia</code>. For a long time, I have used a combination of <code>ggplot2</code> and <code>sf</code> in <code>R</code> to draw all my maps. I have tried on a few occassions to port my mapping over to <code>Julia</code>, but the maps I have been able to draw, so far, have been terrible. Until now... </p>
+<p>So, we are going to go over the following processes towards drawing a good map:</p>
+<ul>
+<li><p>Import a shapefile of a geographic region to plot for our map  </p>
+</li>
+<li><p>Download GPS records for a focal species from the GBIF database   </p>
+</li>
+<li><p>Plot the GPS records over the shapefile we imported  </p>
+</li>
+<li><p>Some basic editing of the map appearance to make it look beautiful   </p>
+</li>
+</ul>
+<h3 id="session_setup"><a href="#session_setup" class="header-anchor">Session setup </a></h3>
+<p>As always, the first thing we need to do is download and load the required packages to perform these operations. </p>
+<pre><code class="language-julia"># Download required packages, if necessary &#40;remove # to evaluate code&#41;
+# Pkg.add&#40;&#91;&quot;GBIF&quot;, &quot;Shapefile&quot;, &quot;CairoMakie&quot;, &quot;AlgebraOfGraphics&quot;, &quot;DataFrames&quot;&#93;&#41;
+
+# Load required packages into current session 
+using GBIF                   # Query and download species GPS data from GBIF 
+using Shapefile              # Import and manipulate raster data &#40;e.g. .shp files&#41;
+using CairoMakie             # Plotting utilities 
+using AlgebraOfGraphics      # Plotting utilities
+using DataFrames             # Create and manipulate DataFrame objects</code></pre>
+<p>  </p>
+<h3 id="download_gps_data"><a href="#download_gps_data" class="header-anchor">Download GPS data </a></h3>
+<p>The next step is to download GPS data from the online GBIF repository, straight from Julia. You could import your own file containing GPS data &#40;e.g. a .csv or .xlsx file&#41;. We define a series of numbers containing latitude and longitude limits to extract only the GPS data that falls within these limits. Thereafter, we use the <code>GBIF.occurrences</code> function to download the GPS data for the grass <em>Brachiaria arrecta</em>, a species native to Africa. </p>
+<pre><code class="language-julia"># Download occurences data from GBIF - 
+# - Can use bounding box to only extract data from the native range of Brachiaria arrecta &#40;Africa&#41;
+lat, lon &#61; &#40;-35, 10&#41;, &#40;0, 45&#41;
+observations &#61; GBIF.occurrences&#40;
+    GBIF.taxon&#40;&quot;Brachiaria arrecta&quot;; strict &#61; false&#41;,
+    &quot;hasCoordinate&quot; &#61;&gt; &quot;true&quot;,
+    &quot;decimalLatitude&quot; &#61;&gt; lat,
+    &quot;decimalLongitude&quot; &#61;&gt; lon,
+    &quot;limit&quot; &#61;&gt; 300,
+&#41;</code></pre>
+<pre><code class="plaintext code-output">GBIF records: downloaded 119 out of 119
+</code></pre>
+<p><em>Voila</em> - We now have 119 GPS records to work with.  </p>
+<p>To use the GPS data further, we need to convert the object returned by <code>GBIF</code> to a DataFrame object. While we are at it, we are going to remove any of the GPS records where either the latitude &#61; 0 or the longitude &#61; 0, as these represent co-ordinate errors. </p>
+<pre><code class="language-julia"># Convert GBIF observations to Dataframe object
+df &#61; DataFrames.DataFrame&#40;observations&#41;
+
+# Remove rows where lat or long &#61;&#61; 0
+df &#61; filter&#40;df -&gt; &#33;&#40;df.latitude &#61;&#61; 0.0 || df.latitude &#61;&#61; 00&#41;,  df&#41;;
+
+# Show just the first 10 rows of GPS data
+first&#40;df, 10&#41;</code></pre>
+<pre><code class="plaintext code-output">10×29 DataFrame
+ Row │ key         datasetKey                         dataset              publishingOrgKey                   publishingCountry  institutionCode             protocol     countryCode  country                       basisOfRecord       individualCount  latitude   longitude  precision  uncertainty  geodetic  date                 identified           issues                             taxonKey  rank     taxon                              generic     epithet  vernacular  scientific                         observer                           license                            presence
+     │ Int64       String                             String?              String                             String?            String?                     String       String?      String?                       Symbol              Int64?           Float64    Float64    Missing    Float64?     String    DateTime             DateTime             Array…                             Int64     String   GBIFTaxon                          String      String   Missing     String                             String?                            String                             Bool
+─────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   1 │ 1264988681  e396bc9e-99f8-4187-85c5-ef2b4e50…  missing              750a8724-fa66-4c27-b645-bd58ac5e…  BG                 US                          DWC_ARCHIVE  TZ           Tanzania, United Republic of  PRESERVED_SPECIMEN          missing   -2.73597    34.9528    missing      missing  WGS84     2012-06-16T00:00:00  missing              [:GEODETIC_DATUM_ASSUMED_WGS84, …   2705838  SPECIES  GBIF taxon -- Brachiaria arrecta…  Brachiaria  arrecta     missing  Brachiaria arrecta (Hack.) Stent   Peterson, PM; Soreng, RJ; Romasc…  http://creativecommons.org/licen…      true
+   2 │ 1319105209  821cc27a-e3bb-4bc5-ac34-89ada245…  NMNH Extant Biology  bc092ff0-02e4-11dc-991f-b8a03c50…  US                 US                          EML          TZ           Tanzania, United Republic of  PRESERVED_SPECIMEN                1   -2.73597    34.9528    missing      missing  WGS84     2012-06-16T00:00:00  missing              [:GEODETIC_DATUM_ASSUMED_WGS84]     2705837  SPECIES  GBIF taxon -- Urochloa arrecta\n   Urochloa    arrecta     missing  Urochloa arrecta (Hack.) Morrone…  P. M. Peterson, R. J. Soreng, K.…  http://creativecommons.org/publi…      true
+   3 │ 2268842141  7bd65a7a-f762-11e1-a439-00145eb4…  Tropicos             90fd6680-349f-11d8-aa2d-b8a03c50…  US                 MO                          EML          TZ           Tanzania, United Republic of  PRESERVED_SPECIMEN                1   -2.73611    34.9528    missing      missing  WGS84     2012-06-16T00:00:00  2013-01-01T00:00:00  [:COORDINATE_ROUNDED, :GEODETIC_…   2705837  SPECIES  GBIF taxon -- Urochloa arrecta\n   Urochloa    arrecta     missing  Urochloa arrecta (Hack.) Morrone…  Paul M. Peterson|Robert J. Soren…  http://creativecommons.org/licen…      true
+   4 │ 3708521001  d0963cee-1a29-47a2-b9bf-fb0e7690…  missing              c5f7ef70-e233-11d9-a4d6-b8a03c50…  ZA                 missing                     EML          ZA           South Africa                  PRESERVED_SPECIMEN          missing  -28.2339     32.3639    missing      missing  WGS84     2008-01-31T00:00:00  missing              [:COORDINATE_ROUNDED, :GEODETIC_…   2705838  SPECIES  GBIF taxon -- Brachiaria arrecta…  Brachiaria  arrecta     missing  Brachiaria arrecta (Hack.) Stent   de Wet, SF                         http://creativecommons.org/licen…      true
+   5 │ 3708580045  d0963cee-1a29-47a2-b9bf-fb0e7690…  missing              c5f7ef70-e233-11d9-a4d6-b8a03c50…  ZA                 missing                     EML          ZA           South Africa                  PRESERVED_SPECIMEN          missing  -28.585      32.0892    missing      missing  WGS84     2008-03-15T00:00:00  missing              [:COORDINATE_ROUNDED, :GEODETIC_…   2705838  SPECIES  GBIF taxon -- Brachiaria arrecta…  Brachiaria  arrecta     missing  Brachiaria arrecta (Hack.) Stent   de Wet, SF                         http://creativecommons.org/licen…      true
+   6 │ 3708723039  d0963cee-1a29-47a2-b9bf-fb0e7690…  missing              c5f7ef70-e233-11d9-a4d6-b8a03c50…  ZA                 missing                     EML          ZA           South Africa                  PRESERVED_SPECIMEN          missing  -28.9531     30.8078    missing      missing  WGS84     2005-02-17T00:00:00  missing              [:COORDINATE_ROUNDED, :GEODETIC_…   2705838  SPECIES  GBIF taxon -- Brachiaria arrecta…  Brachiaria  arrecta     missing  Brachiaria arrecta (Hack.) Stent   de Wet, SF                         http://creativecommons.org/licen…      true
+   7 │ 3708177057  d0963cee-1a29-47a2-b9bf-fb0e7690…  missing              c5f7ef70-e233-11d9-a4d6-b8a03c50…  ZA                 missing                     EML          ZA           South Africa                  PRESERVED_SPECIMEN          missing  -29.0364     30.575     missing      missing  WGS84     2005-03-11T00:00:00  missing              [:COORDINATE_ROUNDED, :GEODETIC_…   2705838  SPECIES  GBIF taxon -- Brachiaria arrecta…  Brachiaria  arrecta     missing  Brachiaria arrecta (Hack.) Stent   de Wet, SF                         http://creativecommons.org/licen…      true
+   8 │ 1258778023  7bd65a7a-f762-11e1-a439-00145eb4…  Tropicos             90fd6680-349f-11d8-aa2d-b8a03c50…  US                 MO                          EML          TZ           Tanzania, United Republic of  PRESERVED_SPECIMEN                5   -2.57916    33.4575    missing      missing  WGS84     2000-03-03T00:00:00  2004-01-01T00:00:00  [:GEODETIC_DATUM_ASSUMED_WGS84, …   2705838  SPECIES  GBIF taxon -- Brachiaria arrecta…  Brachiaria  arrecta     missing  Brachiaria arrecta (Hack.) Stent   C.J. Kayombo|D. Sitoni             http://creativecommons.org/licen…      true
+   9 │  197017224  4d749d70-e2e1-11dd-8102-b8a03c50…  missing              335880a0-e2e1-11dd-8102-b8a03c50…  US                 Conservation International  DWC_ARCHIVE  BW           Botswana                      HUMAN_OBSERVATION           missing  -19.527      23.096     missing      missing  WGS84     2000-06-05T00:00:00  missing              [:GEODETIC_DATUM_ASSUMED_WGS84, …   2705838  SPECIES  GBIF taxon -- Brachiaria arrecta…  Brachiaria  arrecta     missing  Brachiaria arrecta (Hack.) Stent   W.N. (Fred) Ellery                 http://creativecommons.org/licen…      true
+  10 │  197017282  4d749d70-e2e1-11dd-8102-b8a03c50…  missing              335880a0-e2e1-11dd-8102-b8a03c50…  US                 Conservation International  DWC_ARCHIVE  BW           Botswana                      HUMAN_OBSERVATION           missing  -19.527      23.096     missing      missing  WGS84     2000-06-05T00:00:00  missing              [:GEODETIC_DATUM_ASSUMED_WGS84, …   2705838  SPECIES  GBIF taxon -- Brachiaria arrecta…  Brachiaria  arrecta     missing  Brachiaria arrecta (Hack.) Stent   W.N. (Fred) Ellery                 http://creativecommons.org/licen…      true</code></pre>
+<pre><code class="language-julia">a &#61; 2 &#43; 2</code></pre>
+<pre><code class="plaintext code-output">a = 4
+</code></pre>
+<p>According to <span class="bibref"><a href="#tmcenerney">McEnerney (2014)</a></span>, academics are trained to be poor writers. Eventually, they end up in his office and tell, while crying, that their careers might end soon. One reason why academics are poor writers is that they are <em>expert writers</em>. Expert writers are not experts in writing but are experts who write. An expert writer typically thinks via writing and they assume that this raw output is good enough for readers. However, it isn&#39;t good enough. For a start, expert writers have a worldview which differs from the readers&#39; due to the writers&#39; expertise. So, to avoid crying, McEnerney argues that writers should instead write to be <strong>valuable</strong> to the <strong>community</strong> of readers.</p>
+<p>Focussing mainly on texts being valuable may seem odd. When a text is not valuable, people will</p>
+<ol>
+<li><p>slow down and reread,</p>
+</li>
+<li><p>misunderstand or don&#39;t understand the text,</p>
+</li>
+<li><p>get aggregated and</p>
+</li>
+<li><p>stop reading.</p>
+</li>
+</ol>
+<p>So, ensure that people are able to keep the pace when reading. To do so, most people have learned that writing should be organized, pervasive and clear. However, a useless, organized, pervasive and clear text is just useless. Another misconception is that writing should explain your thoughts. Only people like teachers care about your thoughts since they are paid to care. So, it&#39;s about writing texts which people find genuinly interesting. The easiest ways to write interestingly are to create excitement and to write like the readers would. Creating excitement sounds inappropriate for the nobel art of science. Actually, it is how things work; excitement has been selling newspapers for years.</p>
+<p>Excitement can be achieved by arguing against existing work, pointing out contradictions and solving problems. Do beware that you argue against existing work according to the rules, so don&#39;t write a paper &quot;proclaiming the superiority of your work and the pathetic inadequacy of the contributions of A, B, C, ...&quot; <span class="bibref">(<a href="#pwadge">Wadge, 2020</a>)</span>. Instead, check out previous work and see how they did it. Daring to go against existing work is truly important since only adding new knowledge is boring. There are an infinite number of new pieces of knowledge to be found. If you add one new piece, then the number will remain infinite. To satisfy the latter, that is, to write like the reader would, you could read all the papers in a journal and try to mimick that. This takes a lot of time. A shortcut is to simply copy important or exciting words, such as <em>however</em>, <em>contradicts</em>, <em>reported</em> and <em>investigate</em>. Finally, the best way to get the readers&#39; attention is to solve a problem the community cares about. Either point out that the science is currently unstable or, with your work, solve a problem to reduce costs or increase benefits.</p>
+<p>Next, let&#39;s discuss the group of readers. How you write depends on who is going to read it. In science, your work is read by experts in some field who, basically, behave like a community. Others go even further and call it a village <span class="bibref">(<a href="#pfernandes">Fernandes, 2017</a>)</span>. McEnerney is very frank about typical academic communities. Like him, these communities are usually too male, too pale and too stale. It&#39;s not how it should be, but it is how it works. To persuade these people, estimate what the reader doubts. Also, know that the community is not as clever as you might expect. Communities know a finite set of papers. So, don&#39;t write like your work will last for eternity. People of the future will just cite better works and forget about yours. At the end of the day, you should be fine with just pushing the discussion forward. In other words, you write to change current ideas.</p>
+<h2 id="references"><a href="#references" class="header-anchor">References</a></h2>
+<p><a id="pfernandes" class="anchor"></a> Fernandes, F. C. &#40;2017, October 18&#41;. How to succeed in academia according to a Nobel Prize Laureate. <a href="https://phdlife.warwick.ac.uk/2017/10/18/how-to-succeed-in-academia-according-to-a-nobel-prize-laureate">https://phdlife.warwick.ac.uk/2017/10/18/how-to-succeed-in-academia-according-to-a-nobel-prize-laureate</a></p>
+<p><a id="tmcenerney" class="anchor"></a> McEnerney &#40;2014&#41; Leadership LAB: The Craft of Writing Effectively &#91;Video&#93;. YouTube. <a href="https://youtu.be/vtIzMaLkCaM">https://youtu.be/vtIzMaLkCaM</a></p>
+<p><a id="pwadge" class="anchor"></a> Wadge, B. &#40;2020&#41;. The Secret of Academic Success - or fun filled failure if you prefer. Bill Wadge’s Blog. Retrieved July 29, 2020, from  <a href="https://billwadge.wordpress.com/2020/02/06/the-secret-of-academic-success-or-fun-filled-failure-if-you-prefer">https://billwadge.wordpress.com/2020/02/06/the-secret-of-academic-success-or-fun-filled-failure-if-you-prefer</a></p>
+<div class="page-foot">
+    <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> Guy F. Sutton. Last modified: January 16, 2023.
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia programming language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    </div>  <!-- div: content container -->
+    
+    
+        <script src="/libs/highlight/highlight.min.js"></script>
+<script>hljs.highlightAll();hljs.configure({tabReplace: '    '});</script>
+
+    
+  </body>
+</html>

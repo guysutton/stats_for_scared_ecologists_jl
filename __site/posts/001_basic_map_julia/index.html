@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+   <link rel="stylesheet" href="/libs/highlight/styles/github.min.css">
+   
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/poole_hyde.css">
+<!-- style adjustments -->
+<style>
+  html {font-size: 17px;}
+  .franklin-content {position: relative; padding-left: 5%; padding-right: 5%; line-height: 1.35em;}
+  @media (min-width: 940px) {
+    .franklin-content {width: 80%; margin-left: auto; margin-right: auto;}
+  }
+  @media (max-width: 768px) {
+    .franklin-content {padding-left: 6%; padding-right: 6%;}
+  }
+</style>
+<link rel="icon" href="/assets/favicon.png">
+
+   <title> Drawing beautiful maps using Julia</title>  
+</head>
+<body>
+<div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <h1><a href="/">Stats for Scared Ecologists</a></h1>
+      <p class="lead">Statistics, R, Julia, GIS</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="sidebar-nav-item " href="/">Home</a>
+      <a class="sidebar-nav-item " href="/about_me/">About me</a>
+      <a class="sidebar-nav-item " href="/menu2/">More goodies</a>
+      <a class="sidebar-nav-item " href="/menu3/">Tags</a>
+    </nav>
+    <p>&copy; Guy F. Sutton.</p>
+  </div>
+</div>
+<div class="content container">
+
+<!-- Content appended here -->
+<div class="franklin-content">
+<h1 id="drawing_beautiful_maps_using_julia"><a href="#drawing_beautiful_maps_using_julia" class="header-anchor">Drawing beautiful maps using Julia </a></h1>
+<p>In todays post, we are going to learn how to draw a beautiful map using <code>Julia</code>. For a long time, I have used a combination of <code>ggplot2</code> and <code>sf</code> in <code>R</code> to draw all my maps. I have tried on a few occassions to port my mapping over to <code>Julia</code>, but the maps I have been able to draw, so far, have been terrible. Until now... </p>
+<p>So, we are going to go over the following processes towards drawing a good map:</p>
+<ul>
+<li><p>Import a shapefile of a geographic region to plot for our map  </p>
+</li>
+<li><p>Import  GPS records for a focal species from a .csv file  </p>
+</li>
+<li><p>Plot the GPS records over the shapefile we imported  </p>
+</li>
+<li><p>Some basic editing of the map appearance to make it look beautiful   </p>
+</li>
+</ul>
+<h3 id="session_setup"><a href="#session_setup" class="header-anchor">Session setup </a></h3>
+<p>As always, the first thing we need to do is download and load the required packages to perform these operations. </p>
+<pre><code class="language-julia"># Download required packages, if necessary &#40;remove # to evaluate code&#41;
+# Pkg.add&#40;&#91;&quot;GBIF&quot;, &quot;Shapefile&quot;, &quot;CairoMakie&quot;, &quot;AlgebraOfGraphics&quot;, &quot;DataFrames&quot;, &quot;CSV&#93;&#41;
+
+# Load required packages into current session 
+using Shapefile              # Import and manipulate raster data &#40;e.g. .shp files&#41;
+using CairoMakie             # Plotting utilities 
+using AlgebraOfGraphics      # Plotting utilities
+using DataFrames             # Create and manipulate DataFrame objects 
+using CSV                    # Import and process .csv files 
+using GBIF                   # Plotting
+using SimpleSDMLayers        # Plotting 
+using Colors                 # Plotting</code></pre>
+<p>  </p>
+<h3 id="download_gps_data"><a href="#download_gps_data" class="header-anchor">Download GPS data </a></h3>
+<p>The next step is to load the GPS data we want to plot. We are going to import our own file containing GPS data &#40;e.g. a .csv file&#41;. Alternatively, we could download data straight from online repositories &#40;e.g. GBIF&#41;. </p>
+<pre><code class="language-julia"># Import .csv file containing GPS data
+df &#61; DataFrames.DataFrame&#40;CSV.File&#40;&quot;.\\_assets\\data\\001_drawing_maps\\senecio_gps.csv&quot;&#41;&#41;;
+
+# Show just the first 10 rows of GPS data
+first&#40;df, 10&#41;</code></pre>
+<pre><code class="plaintext code-output">10×3 DataFrame
+ Row │ scientific                longitude  latitude
+     │ String31                  Float64    Float64
+─────┼───────────────────────────────────────────────
+   1 │ Senecio madagascariensis    30.6458  -29.8125
+   2 │ Senecio madagascariensis    30.2292  -29.5208
+   3 │ Senecio madagascariensis    31.2292  -25.5208
+   4 │ Senecio madagascariensis    30.1875  -29.5208
+   5 │ Senecio madagascariensis    30.6458  -29.7292
+   6 │ Senecio madagascariensis    30.9792  -29.6458
+   7 │ Senecio madagascariensis    31.0625  -29.7292
+   8 │ Senecio madagascariensis    30.3542  -30.3125
+   9 │ Senecio madagascariensis    30.6042  -29.7708
+  10 │ Senecio madagascariensis    30.6875  -29.7292</code></pre>
+<p><em>Voila</em> - We now have 136 GPS records to work with.  </p>
+<h3 id="load_africa_shapefile"><a href="#load_africa_shapefile" class="header-anchor">Load Africa shapefile </a></h3>
+<p>We are now going to load a shapefile containing a map of the countries of Africa using <code>Shapefile.jl</code>. This map is going to be our base layer. </p>
+<pre><code class="language-julia"># Import the .shp file using Shapefile.jl
+# Downloaded from: https://geoportal.icpac.net/layers/geonode&#37;3Aafr_g2014_2013_0
+table &#61; Shapefile.Table&#40;&quot;.\\_assets\\data\\001_drawing_maps\\shapefiles\\afr_g2014_2013_0.shp&quot;&#41;;</code></pre>
+
+<p>The Africa map is currently stored as a Shapefile.Table, not a map. In the next section, we will need to convert the Shapefile.Table into a map to visualise the map. </p>
+<h3 id="load_africa_shapefile__2"><a href="#load_africa_shapefile__2" class="header-anchor">Load Africa shapefile </a></h3>
+<p>Before we do anything else, we are going to change the theme/appearance of the map that we are going to make. This is just my personal preference, so feel free to remove or edit, to your preference. </p>
+<pre><code class="language-julia"># Set map theme for AlgebraOfGraphics.jl
+set_aog_theme&#33;&#40;&#41; 
+update_theme&#33;&#40;   
+    Axis &#61; &#40;
+        topspinevisible &#61; true, 
+        rightspinevisible &#61; true,
+        bottomspinecolor &#61; :black,
+        leftspinecolor &#61; :black,
+        xtickcolor &#61;:black,
+        ytickcolor &#61;:black
+       &#41;
+&#41;;</code></pre>
+
+<h3 id="plot_map"><a href="#plot_map" class="header-anchor">Plot map </a></h3>
+<p>Now we are going to build our map layer-by-layer. This process is similar to how <code>ggplot2</code> makes figures in <code>R</code>, as we are going to effectively stack different layers of information over one another to make a map. The first layer we are doing to make is the base layer containing the map of Africa. </p>
+<pre><code class="language-julia"># Step 1: Create a raster layer with the African shapefile &#40;.shp&#41;
+layer_map &#61; geodata&#40;table&#41; * 
+        mapping&#40;
+            :geometry
+            &#41; * 
+        visual&#40;
+            Poly,
+            strokecolor &#61; :black,
+            strokewidth &#61; 1,
+            linestyle &#61; :solid,
+            color &#61; &quot;white&quot;
+&#41;;    
+
+# Print Africa map
+draw&#40;layer_map&#41;;</code></pre>
+
+
+<img src="/assets/posts/001_basic_map_julia/code/output/map_africa.png" alt="">
+<p>The next step is to create a layer containing the GPS points that we want to plot over the Africa map. We need to pass the <code>DataFrame</code> containing the latitude and longitudes for each GPS point and a column containing a text identified with the species/taxon name to plot in the legend. </p>
+<pre><code class="language-julia"># Step 2: Create a layer with points for the GPS data 
+layer_gps &#61; data&#40;df&#41; * 
+        mapping&#40;  
+            :longitude,
+            :latitude,
+            # Changes the legend name 
+            color &#61; :scientific &#61;&gt; &quot;Species&quot;
+        &#41; * 
+        visual&#40;
+            Scatter,
+            marker &#61; :circle,
+            markersize &#61; 12.5,
+&#41;;</code></pre>
+
+<p>The last step is to plot the two layers of information to make our final map. </p>
+<pre><code class="language-julia"># Set all points labelled as Senecio madagascariensis to black colour
+colors &#61; &#91;&quot;Senecio madagascariensis&quot; &#61;&gt; colorant&quot;#000000&quot;&#93;
+
+# Step 3: Combine layers to make map 
+map_final &#61; draw&#40;
+    # Pass layer containing base layer shapefile 
+    layer_map &#43; 
+    # Pass layer containing GPS points 
+    layer_gps, 
+    # Define x and y axis limits, axis tick range and axis labels 
+    axis &#61; &#40;
+        limits &#61; &#40;&#40;-20, 55&#41;, &#40;-38, 40&#41;&#41;,
+        xticks &#61; -20:10:55,
+        yticks &#61; -38:10:40,
+        aspect &#61; 1, 
+        xlabel &#61; &quot;Longitude&quot;,
+        ylabel &#61; &quot;Latitude&quot;, 
+    &#41;,
+    figure &#61; &#40;
+        resolution &#61; &#40;750, 750&#41;,
+    &#41;, 
+    # Place the legend on top of the figure &#40;position &#61; :top&#41;
+    legend &#61; &#40;position &#61; :top, titleposition &#61; :left, &#41;,
+    palettes &#61; &#40;color &#61; colors, &#41;
+&#41;;</code></pre>
+
+
+<img src="/assets/posts/001_basic_map_julia/code/output/map_final.png" alt="">
+<div class="page-foot">
+    <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> Guy F. Sutton. Last modified: March 10, 2023.
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia programming language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    </div>  <!-- div: content container -->
+    
+    
+        <script src="/libs/highlight/highlight.min.js"></script>
+<script>hljs.highlightAll();hljs.configure({tabReplace: '    '});</script>
+
+    
+  </body>
+</html>
