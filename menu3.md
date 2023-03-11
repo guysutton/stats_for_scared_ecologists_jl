@@ -1,5 +1,5 @@
 +++
-title = "Menu 3"
+title = "Search posts"
 +++
 
 # Working with tags
@@ -101,3 +101,5 @@ For instance the default uses:
 <!-- 2: simple list item plugging in path + title -->
 <li><a href="/$rpath/">$title</a></li>
 ```
+
+{{ tag_landing_page }}

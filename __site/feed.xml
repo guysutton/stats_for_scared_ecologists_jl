@@ -23,12 +23,12 @@
 
 <item>
   <title>
-    <![CDATA[  Guy F. Sutton | Home  ]]>
+    <![CDATA[  Home  ]]>
   </title>
-  <link> https://huijzer.xyz\about_me/index.html </link>
-  <guid> https://huijzer.xyz\about_me/index.html </guid>
+  <link> https://huijzer.xyz\index.html </link>
+  <guid> https://huijzer.xyz\index.html </guid>
   <description>
-    <![CDATA[  About this website  ]]>
+    <![CDATA[  Blog posts about statistics, research and related topics  ]]>
   </description>
 
   
@@ -54,19 +54,19 @@
 
 <item>
   <title>
-    <![CDATA[  Home  ]]>
+    <![CDATA[  Guy F. Sutton | Home  ]]>
   </title>
-  <link> https://huijzer.xyz\index.html </link>
-  <guid> https://huijzer.xyz\index.html </guid>
+  <link> https://huijzer.xyz\about_me/index.html </link>
+  <guid> https://huijzer.xyz\about_me/index.html </guid>
   <description>
-    <![CDATA[  Blog posts about statistics, research and related topics  ]]>
+    <![CDATA[  About this website  ]]>
   </description>
 
   
   
 
   
-  <pubDate>Fri, 10 Mar 2023 00:00:00 +0000</pubDate>
+  <pubDate>Sat, 11 Mar 2023 00:00:00 +0000</pubDate>
 
   
   
