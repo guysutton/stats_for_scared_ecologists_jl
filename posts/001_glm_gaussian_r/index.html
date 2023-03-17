@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/poole_hyde.css">
+<!-- style adjustments -->
+<style>
+  html {font-size: 17px;}
+  .franklin-content {position: relative; padding-left: 5%; padding-right: 5%; line-height: 1.35em;}
+  @media (min-width: 940px) {
+    .franklin-content {width: 80%; margin-left: auto; margin-right: auto;}
+  }
+  @media (max-width: 768px) {
+    .franklin-content {padding-left: 6%; padding-right: 6%;}
+  }
+</style>
+<link rel="icon" href="/assets/favicon.png">
+
+   <title> GLM's using R: Part 1, Gaussian GLM</title>  
+</head>
+<body>
+<div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <h1><a href="/">Stats for Scared Ecologists</a></h1>
+      <p class="lead">Statistics, R, Julia, GIS</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="sidebar-nav-item " href="/">Home</a>
+      <a class="sidebar-nav-item " href="/about_me/">About me</a>
+    </nav>
+    <p>&copy; Guy F. Sutton.</p>
+  </div>
+</div>
+<div class="content container">
+
+<!-- Content appended here -->
+<div class="franklin-content">
+<h1 id="background"><a href="#background" class="header-anchor">Background </a></h1>
+<p>Many scared ecologists worry about which statistical test to use to analyse their hard-earned data. This is natural. Typically, some form of linear model will be used to analyse the data, whereby the relationship between a continuous response variable &#40;<code>y</code>&#41; is modelled with respect to one or more explanatory variables &#40;<code>x1</code>, <code>x2</code>, ...&#41;. A general linear model &#40;GLM&#41; is an umbrella term for a linear model for data &#40;residuals&#41; that follow a normal or Gaussian distribution &#40;more on this later&#41;. The GLM likely encompasses many, if not all, of the analyses you were taught during undergraduate statistics courses.  </p>
+<p>For example: </p>
+<ul>
+<li><p>A GLM where our <code>x</code> is numeric is analogous to a <code>linear regression</code></p>
+</li>
+<li><p>A GLM where our <code>x</code> is categorical is analogous to a <code>analysis of variance &#40;ANOVA&#41;</code> </p>
+</li>
+</ul>
+<p>Today, we are going to work through a simple example of a Gaussian General Linear Model &#40;GLM&#41; with a single categorical <code>x</code> variable using <code>R</code>. In other words, we are going to effectively fit a one-way ANOVA in a GLM framework. </p>
+<h1 id="data"><a href="#data" class="header-anchor">Data </a></h1>
+<h3 id="session_setup"><a href="#session_setup" class="header-anchor">Session setup </a></h3>
+<p>As always, the first thing we need to do is download and load the required packages to perform these operations. </p>
+<div class="page-foot">
+    <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> Guy F. Sutton. Last modified: March 12, 2023.
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia programming language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    </div>  <!-- div: content container -->
+    
+    
+  </body>
+</html>
