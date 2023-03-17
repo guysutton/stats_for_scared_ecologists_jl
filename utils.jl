@@ -64,7 +64,7 @@ Souce: <https://github.com/abhishalya/abhishalya.github.io>.
             date = Date(pubdate, dateformat"yyyy-mm-dd")
         end
         write(io, """$date</i></span><b><a href="$url">$title</a></b>""")
-        write(io, """<li><i class="description">$description</i></li>""")
+        # write(io, """<li><i class="description">$description</i></li>""")
     end
     write(io, "</ul>")
     return String(take!(io))

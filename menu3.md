@@ -102,4 +102,3 @@ For instance the default uses:
 <li><a href="/$rpath/">$title</a></li>
 ```
 
-{{ tag_landing_page }}

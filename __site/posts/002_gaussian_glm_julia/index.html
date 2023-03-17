@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+   <link rel="stylesheet" href="/libs/highlight/styles/github.min.css">
+   
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/poole_hyde.css">
+<!-- style adjustments -->
+<style>
+  html {font-size: 17px;}
+  .franklin-content {position: relative; padding-left: 5%; padding-right: 5%; line-height: 1.35em;}
+  @media (min-width: 940px) {
+    .franklin-content {width: 80%; margin-left: auto; margin-right: auto;}
+  }
+  @media (max-width: 768px) {
+    .franklin-content {padding-left: 6%; padding-right: 6%;}
+  }
+</style>
+<link rel="icon" href="/assets/favicon.png">
+
+   <title> GLM's using Julia: Part 1, Gaussian GLM</title>  
+</head>
+<body>
+<div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <h1><a href="/">Stats for Scared Ecologists</a></h1>
+      <p class="lead">Statistics, R, Julia, GIS</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="sidebar-nav-item " href="/">Home</a>
+      <a class="sidebar-nav-item " href="/about_me/">About me</a>
+    </nav>
+    <p>&copy; Guy F. Sutton.</p>
+  </div>
+</div>
+<div class="content container">
+
+<!-- Content appended here -->
+<div class="franklin-content">
+<h3 id="session_setup"><a href="#session_setup" class="header-anchor">Session setup </a></h3>
+<p>As always, the first thing we need to do is download and load the required packages to perform these operations. </p>
+<pre><code class="language-julia"># Download required packages, if necessary &#40;remove # to evaluate code&#41;
+# Pkg.add&#40;&#91;&quot;DataFrames&quot;, &quot;CSV&quot;, &quot;PalmerPenguins&quot;, &quot;GLM&quot;, &quot;Tidier.jl&quot;, &quot;CairoMakie&quot;, &quot;AlgebraOfGraphics&quot;&#93;&#41;
+
+# Load required packages into current session 
+using DataFrames             # Create and manipulate DataFrame objects 
+using CSV                    # Import and process .csv files 
+using PalmerPenguins         # Access PalmerPenguins dataset 
+using GLM                    # Fit linear models 
+using Tidier                 # Tidyverse-like syntax for data manipulation
+using CairoMakie             # Plotting utilities 
+using AlgebraOfGraphics      # Plotting utilities</code></pre>
+<p>  </p>
+<h3 id="load_data"><a href="#load_data" class="header-anchor">Load data </a></h3>
+<p>The next step is to load the data we are going to analyse. We are going use the built-in <a href="https://github.com/devmotion/PalmerPenguins.jl">Palmer penguins dataset</a> &#40;<a href="https://journals.plos.org/plosone/article?id&#61;10.1371/journal.pone.0090081">Gorman et al. 2014</a>&#41; that is made available through the <code>PalmerPenguins.jl</code> package &#40;<a href="https://github.com/devmotion/PalmerPenguins.jl">Horst <em>et al</em>. 2020</a>&#41;. It contains body morphology measurements for 344 individual penguins from three species of penguins collected from three different islands in the Palmer Archpelago in Antarctica. There are 11 rows of data with missing data that we will remove from the dataset prior to analysis. </p>
+<pre><code class="language-julia"># Load PalmerPenguins data
+df &#61; DataFrame&#40;PalmerPenguins.load&#40;; raw &#61; false&#41;&#41;
+
+# Drop the rows containing NA values 
+df &#61; dropmissing&#40;df, &#91;:body_mass_g, :sex&#93;&#41;
+df &#61; disallowmissing&#33;&#40;df&#41;
+
+# Show first 10 rows 
+first&#40;df, 10&#41;</code></pre>
+<pre><code class="plaintext code-output">10×7 DataFrame
+ Row │ species   island     bill_length_mm  bill_depth_mm  flipper_length_mm  body_mass_g  sex
+     │ String15  String15   Float64         Float64        Int64              Int64        String7
+─────┼─────────────────────────────────────────────────────────────────────────────────────────────
+   1 │ Adelie    Torgersen            39.1           18.7                181         3750  male
+   2 │ Adelie    Torgersen            39.5           17.4                186         3800  female
+   3 │ Adelie    Torgersen            40.3           18.0                195         3250  female
+   4 │ Adelie    Torgersen            36.7           19.3                193         3450  female
+   5 │ Adelie    Torgersen            39.3           20.6                190         3650  male
+   6 │ Adelie    Torgersen            38.9           17.8                181         3625  female
+   7 │ Adelie    Torgersen            39.2           19.6                195         4675  male
+   8 │ Adelie    Torgersen            41.1           17.6                182         3200  female
+   9 │ Adelie    Torgersen            38.6           21.2                191         3800  male
+  10 │ Adelie    Torgersen            34.6           21.1                198         4400  male</code></pre>
+<h3 id="research_question"><a href="#research_question" class="header-anchor">Research question </a></h3>
+<p>To illustrate how to fit and interpret a simple Gaussian GLM in Julia, we need to define our research question/hypothesis. Let&#39;s say that we are interested in whether the body mass &#40;given as <code>body_mass_g</code> in <code>df</code>&#41; of the three different penguins species is different. In other words, are one or more of the penguin species that were sampled either significantly lighter or heavier than the other species? </p>
+<h3 id="exploratory_data_analysis"><a href="#exploratory_data_analysis" class="header-anchor">Exploratory data analysis </a></h3>
+<p>The first thing we should always be doing when analysing a new dataset is checking that the data is correct &#40;e.g. there are no transcription errors, the data imported correctly, all the data is labelled correctly, ect...&#41;. </p>
+<p>For example, one of the first things I always do is make sure that all the groups of interest are present in the dataset and the sample sizes are correct. We know from reading the help file for the <a href="https://github.com/devmotion/PalmerPenguins.jl">Palmer penguins dataset</a> that there should be three penguin species &#40;Adelie, Gentoo and Chinstrap&#41; and the total sample size across all penguins is n &#61; 333. </p>
+<pre><code class="language-julia"># Count number of samples per penguin species 
+@chain df begin
+    @group_by&#40;species&#41;
+    @summarise&#40;n &#61; nrow&#40;&#41;&#41;
+end</code></pre>
+<pre><code class="plaintext code-output">3×2 DataFrame
+ Row │ species    n
+     │ String15   Int64
+─────┼──────────────────
+   1 │ Adelie       146
+   2 │ Chinstrap     68
+   3 │ Gentoo       119</code></pre>
+<p>Brilliant. We have confirmed that the data was imported correctly - the data for all three penguin species are available, and we have confirmed that the sample sizes for the different penguin species are 146 &#40;Adelie&#41;, 68 &#40;Chinstrap&#41; and 119 &#40;Gentoo&#41;. </p>
+<p>The next step is to visualise the data. Let&#39;s plot the distribution of body mass values for the three different penguin species. Below, we use the syntax <code>:x &#61;&gt; &quot;x&quot;</code> to relabel each variable during the plotting procedure.  </p>
+<pre><code class="language-julia"># Make boxplot of body mass by penguin species
+data&#40;df&#41; *
+    # Provide the column names to plot on the x and y axis 
+    mapping&#40;
+        :species &#61;&gt; &quot;Species&quot;, 
+        :body_mass_g &#61;&gt; &quot;Body mass &#40;g&#41;&quot;&#41; * 
+    # Colour the bars by &#39;species&#39;
+    mapping&#40;color &#61; :species &#61;&gt; &quot;Species&quot;&#41; * 
+    # Draw a boxplot 
+    visual&#40;BoxPlot&#41; |&gt; 
+    # Make the final figure 
+    draw;</code></pre>
+
+
+<img src="/assets/posts/002_gaussian_glm_julia/code/output/eda_plot.png" alt="">
+<p>It looks like the median body mass &#40;indicated by the bold black line in the middle of the boxes&#41; is quite a bit higher for Gentoo penguins than either Adelie or Chinstrap penguins. Indeed, Gentoo penguins appear to weigh just over 1000g more than the other two species.  The variance &#40;i.e. spread of body mass values along the y-axis&#41; appears to be relatively similar between the three penguin species.</p>
+<div class="page-foot">
+    <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> Guy F. Sutton. Last modified: March 11, 2023.
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia programming language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    </div>  <!-- div: content container -->
+    
+    
+        <script src="/libs/highlight/highlight.min.js"></script>
+<script>hljs.highlightAll();hljs.configure({tabReplace: '    '});</script>
+
+    
+  </body>
+</html>
