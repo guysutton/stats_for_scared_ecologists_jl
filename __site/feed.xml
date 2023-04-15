@@ -35,7 +35,38 @@
   
 
   
-  <pubDate>Fri, 24 Mar 2023 00:00:00 +0000</pubDate>
+  <pubDate>Sat, 15 Apr 2023 00:00:00 +0000</pubDate>
+
+  
+  
+  
+  <atom:author>
+    <atom:name>Guy F. Sutton</atom:name>
+  </atom:author>
+  
+
+  
+
+  
+
+  
+</item>
+
+<item>
+  <title>
+    <![CDATA[  Home  ]]>
+  </title>
+  <link> https://huijzer.xyz\index.html </link>
+  <guid> https://huijzer.xyz\index.html </guid>
+  <description>
+    <![CDATA[  Blog posts about statistics, research and related topics  ]]>
+  </description>
+
+  
+  
+
+  
+  <pubDate>Sat, 11 Mar 2023 00:00:00 +0000</pubDate>
 
   
   
@@ -129,37 +160,6 @@
 
   
   <pubDate>Wed, 01 May 2019 00:00:00 +0000</pubDate>
-
-  
-  
-  
-  <atom:author>
-    <atom:name>Guy F. Sutton</atom:name>
-  </atom:author>
-  
-
-  
-
-  
-
-  
-</item>
-
-<item>
-  <title>
-    <![CDATA[  Home  ]]>
-  </title>
-  <link>  </link>
-  <guid>  </guid>
-  <description>
-    <![CDATA[  Blog posts about statistics, research and related topics  ]]>
-  </description>
-
-  
-  
-
-  
-  <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
 
   
   

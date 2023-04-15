@@ -1,11 +1,14 @@
 +++
 title = " GLM's using Julia: Part 1, Gaussian GLM"
-published = "2023-03-01"
+published = "2021-07-18"
 tags = ["Julia", "Modelling", "GLM", "GLM.jl"]
 rss = " "
 image = "/assets/self.jpg"
 +++
 
+# General linear models - Gaussian GLM (single categorical predictor) 
+
+*This post was originally posted on my personal website on 18-07-2021. It has been updated as of 15-04-2023 to use `Tidier.jl` for data pre-processing* 
 
 ### Session setup 
 
