@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  
+   <link rel="stylesheet" href="/libs/katex/katex.min.css">
+     
    <link rel="stylesheet" href="/libs/highlight/styles/github.min.css">
    
   <link rel="stylesheet" href="/css/franklin.css">
@@ -44,7 +45,7 @@
 <h3 id="session_setup"><a href="#session_setup" class="header-anchor">Session setup </a></h3>
 <p>As always, the first thing we need to do is download and load the required packages to perform these operations. </p>
 <pre><code class="language-julia"># Download required packages, if necessary &#40;remove # to evaluate code&#41;
-# Pkg.add&#40;&#91;&quot;DataFrames&quot;, &quot;CSV&quot;, &quot;PalmerPenguins&quot;, &quot;GLM&quot;, &quot;Tidier.jl&quot;, &quot;CairoMakie&quot;, &quot;AlgebraOfGraphics&quot;&#93;&#41;
+# Pkg.add&#40;&#91;&quot;DataFrames&quot;, &quot;CSV&quot;, &quot;PalmerPenguins&quot;, &quot;GLM&quot;, &quot;Tidier.jl&quot;, &quot;CairoMakie&quot;, &quot;AlgebraOfGraphics&quot;, &quot;GLM&quot;, &quot;Effects&quot;&#93;&#41;
 
 # Load required packages into current session 
 using DataFrames             # Create and manipulate DataFrame objects 
@@ -53,7 +54,9 @@ using PalmerPenguins         # Access PalmerPenguins dataset
 using GLM                    # Fit linear models 
 using Tidier                 # Tidyverse-like syntax for data manipulation
 using CairoMakie             # Plotting utilities 
-using AlgebraOfGraphics      # Plotting utilities</code></pre>
+using AlgebraOfGraphics      # Plotting utilities
+using GLM                    # Fit linear models 
+using Effects                # Compute marginal means</code></pre>
 <p>  </p>
 <h3 id="load_data"><a href="#load_data" class="header-anchor">Load data </a></h3>
 <p>The next step is to load the data we are going to analyse. We are going use the built-in <a href="https://github.com/devmotion/PalmerPenguins.jl">Palmer penguins dataset</a> &#40;<a href="https://journals.plos.org/plosone/article?id&#61;10.1371/journal.pone.0090081">Gorman et al. 2014</a>&#41; that is made available through the <code>PalmerPenguins.jl</code> package &#40;<a href="https://github.com/devmotion/PalmerPenguins.jl">Horst <em>et al</em>. 2020</a>&#41;. It contains body morphology measurements for 344 individual penguins from three species of penguins collected from three different islands in the Palmer Archpelago in Antarctica. There are 11 rows of data with missing data that we will remove from the dataset prior to analysis. </p>
@@ -86,7 +89,7 @@ first&#40;df, 10&#41;</code></pre>
 <p>The first thing we should always be doing when analysing a new dataset is checking that the data is correct &#40;e.g. there are no transcription errors, the data imported correctly, all the data is labelled correctly, ect...&#41;. </p>
 <p>For example, one of the first things I always do is make sure that all the groups of interest are present in the dataset and the sample sizes are correct. We know from reading the help file for the <a href="https://github.com/devmotion/PalmerPenguins.jl">Palmer penguins dataset</a> that there should be three penguin species &#40;Adelie, Gentoo and Chinstrap&#41; and the total sample size across all penguins is n &#61; 333. </p>
 <pre><code class="language-julia"># Count number of samples per penguin species 
-@chain df begin
+n_species &#61; @chain df begin
     @group_by&#40;species&#41;
     @summarise&#40;n &#61; nrow&#40;&#41;&#41;
 end</code></pre>
@@ -115,12 +118,146 @@ data&#40;df&#41; *
 
 <img src="/assets/posts/002_gaussian_glm_julia/code/output/eda_plot.png" alt="">
 <p>It looks like the median body mass &#40;indicated by the bold black line in the middle of the boxes&#41; is quite a bit higher for Gentoo penguins than either Adelie or Chinstrap penguins. Indeed, Gentoo penguins appear to weigh just over 1000g more than the other two species.  The variance &#40;i.e. spread of body mass values along the y-axis&#41; appears to be relatively similar between the three penguin species.</p>
+<h3 id="model_fitting"><a href="#model_fitting" class="header-anchor">Model fitting </a></h3>
+<p>Fitting a GLM is relatively simple in <code>Julia</code>. All we need to do is tell it what is our response variable &#40;the response variable is the measurement we are interested in&#41;. Here, the response variable is &#40;<code>body_mass_g</code>&#41;. We then specify our predictor variables to the right-hand side of this weird ~ &#40;tilde&#41; symbol. Our predictor variables are things we have recorded that we believe could be affecting the response variable. Here, our predictor variable was <code>species</code>. By fitting this model, we are testing the hypothesis that the body mass measurements taken from the 333 penguins in this study vary between the three penguin species. Thereafter, we need to tell <code>Julia</code> where these data are stored &#40;<code>df</code>&#41;, and that we want a Gaussian GLM &#40;<code>Normal&#40;&#41;</code>&#41;, with an identity link function &#40;<code>GLM.IdentityLink</code>&#41;.  </p>
+<p>The last argument we specify is <code>contrast</code>, which allows us to mainly specify the comparisons between categorical variables that we want to make. In this example, we are comparing measurements between <code>Gentoo</code> vs <code>Adelie</code> vs <code>Chinstrap</code> penguins, so we need to specify that we want <em>effects coding</em>. Effects coding will test whether each penguin species is different to the mean body mass across the other two penguin species. This is in contrast to <em>treatment coding</em>, which would compare each penguin species to the reference level. This will become more important when we build more complex models in later blog posts &#40;e.g. including interaction terms&#41;. I won&#39;t go into detail here, other than to point you towards a <a href="https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faqwhat-is-effect-coding/">great introduction to effects coding</a> that you can read in the meanwhile. </p>
+<pre><code class="language-julia"># Fit Gaussian GLM
+m1 &#61; fit&#40;
+         # We want a GLM 
+         GeneralizedLinearModel,
+         # Specify the model formula
+         @formula&#40;body_mass_g ~ 1 &#43; species&#41;,
+         # Where is the data stored? 
+         df,
+         # Which statistical distribution should we fit?
+         Normal&#40;&#41;,
+         # Which link function should be applied?
+         GLM.IdentityLink&#40;&#41;,
+         # Specify effects coding &#40;more on this in later posts&#41;
+         contrasts &#61; Dict&#40;:species &#61;&gt; EffectsCoding&#40;&#41;&#41;&#41;;</code></pre>
+
+<p>Let&#39;s inspect the model output. </p>
+<pre><code class="language-julia"># Print summary output 
+print&#40;m1&#41;</code></pre>
+<pre><code class="plaintext code-output">StatsModels.TableRegressionModel{GeneralizedLinearModel{GLM.GlmResp{Vector{Float64}, Normal{Float64}, IdentityLink}, GLM.DensePredChol{Float64, LinearAlgebra.CholeskyPivoted{Float64, Matrix{Float64}, Vector{Int64}}}}, Matrix{Float64}}
+
+body_mass_g ~ 1 + species
+
+Coefficients:
+────────────────────────────────────────────────────────────────────────────────
+                       Coef.  Std. Error       z  Pr(>|z|)  Lower 95%  Upper 95%
+────────────────────────────────────────────────────────────────────────────────
+(Intercept)         4177.23      26.5856  157.12    <1e-99   4125.12    4229.34
+species: Chinstrap  -444.142     41.8047  -10.62    <1e-25   -526.077   -362.206
+species: Gentoo      915.207     36.0772   25.37    <1e-99    844.497    985.917
+────────────────────────────────────────────────────────────────────────────────</code></pre>
+<p>Here, we get a table of the model coefficients. Let&#39;s break it down step-by-step:</p>
+<ul>
+<li><p>The first thing to notice is that one of the species is missing from the table &#40;<code>Adelie</code> is missing from the table&#41;. Why? </p>
+</li>
+<li><p>Well, the reason is that <code>Adelie</code> penguins are being used as the reference level to compare the other two species with. </p>
+</li>
+<li><p>Let&#39;s take a look at the <code>Coef.</code> column, as this is where most of the interesting information exists. </p>
+<ul>
+<li><p><strong>Interpreting the <code>&#40;Intercept&#41;</code></strong>: When we specify a Gaussian GLM with a categorical predictor as we have done here &#40;remember that penguin <code>species</code> was our predictor variable&#41;, the coefficient for the <code>&#40;Intercept&#41;</code> row is actually the mean value of the response variable &#40;<code>body_mass_g</code>&#41; for the missing level of the predictor. In other words, the <code>&#40;Intercept&#41;</code> coefficient represents the mean body mass &#40;in grams&#41; of <code>Adelie</code> penguins. So, the mean body mass for <code>Adelie</code> penguins &#61; 4177 grams &#40;or 4.17kg&#41;. </p>
+</li>
+<li><p><strong>Interpreting categorical predictor variable coefficients</strong>: As above, when we specify a Gaussian GLM with a categorical predictor as we have done here &#40;remember that penguin <code>species</code> was our predictor variable&#41;, the coefficients for the levels of the predictor variable are the difference in the response variable &#40;<code>body_mass_g</code>&#41; to the reference level.</p>
+<ul>
+<li><p>E.g. The coefficient for <code>Chinstrap</code> penguins &#61; -444.14, which means that the mean body mass of <code>Chinstrap</code> penguins is 444.14 grams less than <code>Adelie</code> penguins &#40;the reference level&#41;. </p>
+</li>
+<li><p>Similarly, the coefficient for <code>Gentoo</code> penguins &#61; 915.21, which means that the mean body mass of <code>Gentoo</code> penguins is 915.21 grams more than <code>Adelie</code> penguins &#40;the reference level&#41;. </p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>This is all good and well, but we don&#39;t yet know if the mean body mass was statistically significantly different between the three penguin species. </p>
+<h3 id="model_inference"><a href="#model_inference" class="header-anchor">Model inference </a></h3>
+<p>Now to the bit of the analysis that most ecologists are most interested in &#40;at least to appease their reviewers: assessing statistical significance and calculating p-values&#41;. Here, we perform statistical inference, which basically means we are going to evaluate &quot;which &#91;model&#93; coefficients are non-zero beyond a reasonable doubt, implying meaningful associations between covariates and the response?&quot; <a href="https://github.com/devmotion/PalmerPenguins.jl">Tredennick <em>et al</em>. 2021</a>.   </p>
+<p>To do this, we will use a Likelihood Ratio Test &#40;LRT&#41;. The LRT allows us to compare a model of interest with a null model that lacks some feature of the model of interest. For example, below we will compare our model of interest &#40;containing the <code>species</code> predictor variable&#41; with a null model which lacks the <code>species</code> predictor. This way we can ask whether adding information about <code>species</code> improved the likelihood of the data in comparison to the null model. Please see <a href="https://github.com/devmotion/PalmerPenguins.jl">Tredennick <em>et al</em>. 2021</a> for an excellent introduction to using the LRT for model inference. </p>
+<p>Below, we define our null model as model containing only a random-intercept only, which is probably the most common null model for basic statistical inference in ecology. The random intercept term in this model effectively represents random chance alone. In other words, this model formula represents the hypothesis that penguin body mass is not significantly different between the three species &#40;i.e. a null hypothesis&#41;.  </p>
+<pre><code class="language-julia"># Define null model to assess effect of &#39;species&#96; on penguin body mass 
+# - Fit a random intercept only &#40;indicated by y ~ 1&#41;
+mnull &#61; fit&#40;
+         GeneralizedLinearModel,
+         @formula&#40;body_mass_g ~ 1&#41;,
+         df,
+         Normal&#40;&#41;,
+         GLM.IdentityLink&#40;&#41;&#41;;</code></pre>
+
+<p>And finally, we can perform a LRT to test that hypothesis that penguin body mass differed between the three penguin species sampled. </p>
+<pre><code class="language-julia"># Perform LRT 
+StatsModels.lrtest&#40;mnull, m1&#41;</code></pre>
+<pre><code class="plaintext code-output">Likelihood-ratio test: 2 models fitted on 333 observations
+───────────────────────────────────────────────────────────────
+     DOF  ΔDOF      LogLik        Deviance     Chisq  p(>Chisq)
+───────────────────────────────────────────────────────────────
+[1]    2        -2700.1455  215259665.9159                     
+[2]    4     2  -2513.2729   70069446.8027  373.7453     <1e-81
+───────────────────────────────────────────────────────────────</code></pre>
+<p>The LRT tells us that including penguin <code>species</code> as a predictor significantly improved the fit of our model to the data relative to the null model &#40;\(\chi\)2 &#61; 373.75, d.f. &#61; 2, <em>P</em> &lt; 0.001&#41;. The LRT supports our alternative hypothesis that penguin body masses were different between the three penguin species sampled.</p>
+<h3 id="marginal_effects"><a href="#marginal_effects" class="header-anchor">Marginal effects</a></h3>
+<p>Regression models, such as the GLM, can be very difficult to interpret and understand. For example, the distinction between treatment versus effects coding can make interpretations quite tricky, while the absence of one of the levels of the predictor variable &#40;i.e. the reference level&#41; is very confusing. </p>
+<p>To get around this issue, we can calculate marginal effects &#40;and uncertainty&#41; to make understanding the model outputs easy and efficient. With a single categorical variable in our fitted GLM, the interpretation of the model results is about as straightforward as it will ever be. When the models get more complex &#40;e.g. adding multiple predictors, mixing categorical and numeric predictors, adding interaction terms&#41;, the model outputs get more and more difficult. </p>
+<p>Let&#39;s calculate the estimated marginal effects from our fitted model using the marvelous <a href="https://docs.juliahub.com/Effects/qason/0.1.5/">Effects.jl</a> package. To do this, we need to specify which variable to calculate the effects over, which is going to be the penguin <code>species</code> column and store this information in a variable called <code>design</code>. Thereafter, we pass the <code>design</code> variable and the fitted GLM model &#40;which we stored in <code>m1</code>&#41; to the <code>effects</code> function to calculate the marginal effects. </p>
+<pre><code class="language-julia"># Calculate marginal effects 
+design &#61; Dict&#40;:species &#61;&gt; unique&#40;df.species&#41;&#41;
+eff_species &#61; Effects.effects&#40;design, m1&#41;</code></pre>
+<pre><code class="plaintext code-output">3×5 DataFrame
+ Row │ species    body_mass_g  err      lower    upper
+     │ String15   Float64      Float64  Float64  Float64
+─────┼───────────────────────────────────────────────────
+   1 │ Adelie         3706.16  38.1356  3668.03  3744.3
+   2 │ Gentoo         5092.44  42.241   5050.2   5134.68
+   3 │ Chinstrap      3733.09  55.8796  3677.21  3788.97</code></pre>
+<p>The <code>body_mass_g</code> column contains the estimated marginal mean of the body mass of the three different penguin species, and the <code>err</code> column contains the standard error of the estimated marginal means &#40;hereafter <code>s.e.</code>&#41;. The <code>lower</code> and <code>upper</code> columns contain the estimated marginal means \(\pm\) 1 s.e.. </p>
+<p>Ideally, we will usually want to report and visualise the estimated marginal means \(\pm\) a 95&#37; confidence interval of the mean &#40;which is 1.96 \(\pm\) s.e.&#41;. Below, we will calculate 1.96 \(\pm\) s.e. for each penguin species and store this value in the existing <code>err</code> column, and manually calculate the 95&#37; confidence intervals &#40;stored in <code>lower_ci</code> and <code>upper_ci</code>&#41;. </p>
+<pre><code class="language-julia"># Calculate 95&#37; confidence interval of the mean marginal effect 
+eff_species_ci &#61; @chain eff_species begin
+    @group_by&#40;species&#41;
+    @summarise&#40;
+        body_mass_g &#61; body_mass_g,
+        err &#61; 1.96 * err,
+        lower_ci &#61; body_mass_g - err,
+        upper_ci &#61; body_mass_g &#43; err
+        &#41;
+end</code></pre>
+<pre><code class="plaintext code-output">3×5 DataFrame
+ Row │ species    body_mass_g  err       lower_ci  upper_ci
+     │ String15   Float64      Float64   Float64   Float64
+─────┼──────────────────────────────────────────────────────
+   1 │ Adelie         3706.16   74.7458   3668.03   3744.3
+   2 │ Chinstrap      3733.09  109.524    3677.21   3788.97
+   3 │ Gentoo         5092.44   82.7923   5050.2    5134.68</code></pre>
+<p>We can also make a plot of the estimated marginal means &#40;and 95&#37; confidence intervals&#41; to quickly visualise the differences in body mass between penguin species.</p>
+<pre><code class="language-julia"># Plot mean and 95&#37; CI of marginal effect 
+plt &#61; data&#40;eff_species_ci&#41; * 
+        mapping&#40;
+            # Plot axes and create new labels for each axis 
+            :species &#61;&gt; &quot;Species&quot;, 
+            :body_mass_g &#61;&gt; &quot;Body mass &#40;g&#41;&quot;
+            &#41; * 
+        &#40;visual&#40;Scatter&#41; &#43; mapping&#40;:err&#41; * visual&#40;Errorbars&#41;&#41; |&gt; 
+        draw</code></pre>
+<pre><code class="plaintext code-output">FigureGrid()</code></pre>
+
+<img src="/assets/posts/002_gaussian_glm_julia/code/output/marginal_plot.png" alt="">
+<p>The plot clearly shows us that the average body mass of Gentoo penguins is significantly higher than both Adelie and Chinstrap penguins. On average, Gentoo penguins weigh more than 1200g &#40;1.2kg&#41; more than both Adelie &#40;3706g&#41; and Chinstrap penguins &#40;3733g&#41;. </p>
+<p>On the other hand, we can see that the body mass of Adelie and Chinstrap penguins are quite similar - the difference in the mean estimated body mass is only about 27 g. The overlapping 95&#37; confidence intervals of the marginal means for these two penguin species is a pretty good indicator that there is no statistically significant difference in the body mass measurements. </p>
+<h1 id="conclusion"><a href="#conclusion" class="header-anchor">Conclusion</a></h1>
+<p>In conclusion, we have completed a simple but thorough ecological data analysis using a Gaussian GLM using <code>Julia</code>. Due to the presence of a single categorical predictor in our model, this analysis can is roughly equivalent to a one-way analysis of variance &#40;ANOVA&#41;, albeit we used a LRT not F-test, to calculate statistical significance. In the next few blogposts, we will work through progressively more complex examples of a Gaussian GLM &#40;e.g. with numeric predictor variables, with combinations of numeric and categorical predictors, interaction terms, ect...&#41;. One aspect that we did not cover in this blogpost is evaluating the model fit using residual diagnostics &#40;e.g. qqplot, residual vs fitted plots&#41;, which is an essential step in the model fitting workflow. This will be the topic of an upcoming blogpost - stay tuned&#33; </p>
 <div class="page-foot">
-    <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> Guy F. Sutton. Last modified: March 11, 2023.
+    <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> Guy F. Sutton. Last modified: March 24, 2023.
     Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia programming language</a>.
 </div>
 </div><!-- CONTENT ENDS HERE -->
     </div>  <!-- div: content container -->
+    
+        <script src="/libs/katex/katex.min.js"></script>
+<script src="/libs/katex/contrib/auto-render.min.js"></script>
+<script>renderMathInElement(document.body)</script>
+
     
     
         <script src="/libs/highlight/highlight.min.js"></script>
