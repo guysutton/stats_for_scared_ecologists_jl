@@ -42,6 +42,8 @@
 
 <!-- Content appended here -->
 <div class="franklin-content">
+<h1 id="general_linear_models_-_gaussian_glm_single_categorical_predictor"><a href="#general_linear_models_-_gaussian_glm_single_categorical_predictor" class="header-anchor">General linear models - Gaussian GLM &#40;single categorical predictor&#41; </a></h1>
+<p><em>This post was originally posted on my personal website on 18-07-2021. It has been updated as of 15-04-2023 to use <code>Tidier.jl</code> for data pre-processing</em> </p>
 <h3 id="session_setup"><a href="#session_setup" class="header-anchor">Session setup </a></h3>
 <p>As always, the first thing we need to do is download and load the required packages to perform these operations. </p>
 <pre><code class="language-julia"># Download required packages, if necessary &#40;remove # to evaluate code&#41;
@@ -248,7 +250,7 @@ plt &#61; data&#40;eff_species_ci&#41; *
 <h1 id="conclusion"><a href="#conclusion" class="header-anchor">Conclusion</a></h1>
 <p>In conclusion, we have completed a simple but thorough ecological data analysis using a Gaussian GLM using <code>Julia</code>. Due to the presence of a single categorical predictor in our model, this analysis can is roughly equivalent to a one-way analysis of variance &#40;ANOVA&#41;, albeit we used a LRT not F-test, to calculate statistical significance. In the next few blogposts, we will work through progressively more complex examples of a Gaussian GLM &#40;e.g. with numeric predictor variables, with combinations of numeric and categorical predictors, interaction terms, ect...&#41;. One aspect that we did not cover in this blogpost is evaluating the model fit using residual diagnostics &#40;e.g. qqplot, residual vs fitted plots&#41;, which is an essential step in the model fitting workflow. This will be the topic of an upcoming blogpost - stay tuned&#33; </p>
 <div class="page-foot">
-    <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> Guy F. Sutton. Last modified: March 24, 2023.
+    <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> Guy F. Sutton. Last modified: April 15, 2023.
     Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia programming language</a>.
 </div>
 </div><!-- CONTENT ENDS HERE -->
