@@ -1,6 +1,6 @@
 # This file was generated, do not modify it. # hide
 # Download required packages, if necessary (remove # to evaluate code)
-# Pkg.add(["DataFrames", "CSV", "PalmerPenguins", "GLM", "Tidier.jl", "CairoMakie", "AlgebraOfGraphics"])
+# Pkg.add(["DataFrames", "CSV", "PalmerPenguins", "GLM", "Tidier.jl", "CairoMakie", "AlgebraOfGraphics", "GLM", "Effects"])
 
 # Load required packages into current session 
 using DataFrames             # Create and manipulate DataFrame objects 
@@ -10,3 +10,5 @@ using GLM                    # Fit linear models
 using Tidier                 # Tidyverse-like syntax for data manipulation
 using CairoMakie             # Plotting utilities 
 using AlgebraOfGraphics      # Plotting utilities
+using GLM                    # Fit linear models 
+using Effects                # Compute marginal means

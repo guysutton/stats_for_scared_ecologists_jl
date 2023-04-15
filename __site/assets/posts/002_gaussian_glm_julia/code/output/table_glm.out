@@ -1,0 +1,12 @@
+StatsModels.TableRegressionModel{GeneralizedLinearModel{GLM.GlmResp{Vector{Float64}, Normal{Float64}, IdentityLink}, GLM.DensePredChol{Float64, LinearAlgebra.CholeskyPivoted{Float64, Matrix{Float64}, Vector{Int64}}}}, Matrix{Float64}}
+
+body_mass_g ~ 1 + species
+
+Coefficients:
+────────────────────────────────────────────────────────────────────────────────
+                       Coef.  Std. Error       z  Pr(>|z|)  Lower 95%  Upper 95%
+────────────────────────────────────────────────────────────────────────────────
+(Intercept)         4177.23      26.5856  157.12    <1e-99   4125.12    4229.34
+species: Chinstrap  -444.142     41.8047  -10.62    <1e-25   -526.077   -362.206
+species: Gentoo      915.207     36.0772   25.37    <1e-99    844.497    985.917
+────────────────────────────────────────────────────────────────────────────────

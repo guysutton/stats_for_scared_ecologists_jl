@@ -11,4 +11,4 @@ eda_plot = data(df) *
     visual(BoxPlot) |> 
     # Make the final figure 
     draw;
-save(joinpath(@OUTPUT, "eda_plot.png"), eda_plot, resolution = (1500, 1500)) # hide
+save(joinpath(@OUTPUT, "eda_plot.png"), eda_plot) # hide
